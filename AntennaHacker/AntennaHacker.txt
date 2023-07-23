@@ -1,0 +1,8 @@
+This is the AntennaHacker project. 
+
+The goal of this project is to build off of the AntennaTracker project to 
+create a system to track a drone and subsequently remotely execute commands to
+the drone from a GCS. The first iteration of the project will utilize the AntennaTracker
+stationary functionality to track the target and send a simple Return to Home
+command. Future iterations might include additional commands or scripts
+and will hopefully utilize the mobile AntennaTracker functionality.

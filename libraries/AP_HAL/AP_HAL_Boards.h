@@ -225,10 +225,6 @@
 #define AP_TEST_DRONECAN_DRIVERS 0
 #endif
 
-#ifndef AP_AIRSPEED_BACKEND_DEFAULT_ENABLED
-#define AP_AIRSPEED_BACKEND_DEFAULT_ENABLED 1
-#endif
-
 #ifdef HAVE_LIBDL
 #define AP_MODULE_SUPPORTED 1
 #else
@@ -341,4 +337,8 @@
 // things:
 #if HAL_MINIMIZE_FEATURES && BOARD_FLASH_SIZE > 1024
 #error "2MB board with minimize features?!"
+#endif
+
+#ifndef HAL_ENABLE_SENDING_STATS
+#define HAL_ENABLE_SENDING_STATS BOARD_FLASH_SIZE >= 256
 #endif

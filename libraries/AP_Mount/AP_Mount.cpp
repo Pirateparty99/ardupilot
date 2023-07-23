@@ -14,6 +14,7 @@
 #include "AP_Mount_Siyi.h"
 #include "AP_Mount_Scripting.h"
 #include "AP_Mount_Xacti.h"
+#include "AP_Mount_Viewpro.h"
 #include <stdio.h>
 #include <AP_Math/location.h>
 #include <SRV_Channel/SRV_Channel.h>
@@ -140,6 +141,14 @@ void AP_Mount::init()
             _num_instances++;
             break;
 #endif // HAL_MOUNT_XACTI_ENABLED
+
+#if HAL_MOUNT_VIEWPRO_ENABLED
+        // check for Xacti gimbal
+        case Type::Viewpro:
+            _backends[instance] = new AP_Mount_Viewpro(*this, _params[instance], instance);
+            _num_instances++;
+            break;
+#endif // HAL_MOUNT_VIEWPRO_ENABLED
         }
 
         // init new instance
@@ -749,6 +758,18 @@ SetFocusResult AP_Mount::set_focus(uint8_t instance, FocusType focus_type, float
         return SetFocusResult::FAILED;
     }
     return backend->set_focus(focus_type, focus_value);
+}
+
+// set tracking to none, point or rectangle (see TrackingType enum)
+// if POINT only p1 is used, if RECTANGLE then p1 is top-left, p2 is bottom-right
+// p1,p2 are in range 0 to 1.  0 is left or top, 1 is right or bottom
+bool AP_Mount::set_tracking(uint8_t instance, TrackingType tracking_type, const Vector2f& p1, const Vector2f& p2)
+{
+    auto *backend = get_instance(instance);
+    if (backend == nullptr) {
+        return false;
+    }
+    return backend->set_tracking(tracking_type, p1, p2);
 }
 
 // send camera information message to GCS

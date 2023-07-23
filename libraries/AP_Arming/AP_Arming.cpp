@@ -90,7 +90,7 @@ const AP_Param::GroupInfo AP_Arming::var_info[] = {
 
     // @Param{Plane, Rover}: REQUIRE
     // @DisplayName: Require Arming Motors 
-    // @Description: Arming disabled until some requirements are met. If 0, there are no requirements (arm immediately).  If 1, require rudder stick or GCS arming before arming motors and sends the minimum throttle PWM value to the throttle channel when disarmed.  If 2, require rudder stick or GCS arming and send 0 PWM to throttle channel when disarmed. See the ARMING_CHECK_* parameters to see what checks are done before arming. Note, if setting this parameter to 0 a reboot is required to arm the plane.  Also note, even with this parameter at 0, if ARMING_CHECK parameter is not also zero the plane may fail to arm throttle at boot due to a pre-arm check failure. On planes with ICE enabled and the throttle while disarmed option set in ICE_OPTIONS the motor will get THR_MIN when disarmed.
+    // @Description: Arming disabled until some requirements are met. If 0, there are no requirements (arm immediately).  If 1, sends the minimum throttle PWM value to the throttle channel when disarmed. If 2, send 0 PWM (no signal) to throttle channel when disarmed. On planes with ICE enabled and the throttle while disarmed option set in ICE_OPTIONS, the motor will always get THR_MIN when disarmed. Arming will occur using either rudder stick arming (if enabled) or GCS command when all mandatory and ARMING_CHECK items are satisfied. Note, when setting this parameter to 0, a reboot is required to immediately arm the plane.
     // @Values: 0:Disabled,1:minimum PWM when disarmed,2:0 PWM when disarmed
     // @User: Advanced
     AP_GROUPINFO_FLAGS_FRAME("REQUIRE",     0,      AP_Arming,  require, float(Required::YES_MIN_PWM),
@@ -150,6 +150,11 @@ const AP_Param::GroupInfo AP_Arming::var_info[] = {
 #if HAL_WITH_IO_MCU
 #include <AP_IOMCU/AP_IOMCU.h>
 extern AP_IOMCU iomcu;
+#endif
+
+#pragma GCC diagnostic push
+#if defined (__clang__)
+#pragma GCC diagnostic ignored "-Wbitwise-instead-of-logical"
 #endif
 
 AP_Arming::AP_Arming()
@@ -1248,20 +1253,20 @@ bool AP_Arming::camera_checks(bool display_failure)
 
 bool AP_Arming::osd_checks(bool display_failure) const
 {
-#if OSD_PARAM_ENABLED && OSD_ENABLED 
-    if (check_enabled(ARMING_CHECK_CAMERA)) {
+#if OSD_ENABLED 
+    if (check_enabled(ARMING_CHECK_OSD)) {
+        // if no OSD then pass
         const AP_OSD *osd = AP::osd();
         if (osd == nullptr) {
             return true;
         }
-
-        // check camera is ready
+        // do osd checks for configuration
         char fail_msg[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN+1];
         if (!osd->pre_arm_check(fail_msg, ARRAY_SIZE(fail_msg))) {
-            check_failed(ARMING_CHECK_CAMERA, display_failure, "%s", fail_msg);
+            check_failed(ARMING_CHECK_OSD, display_failure, "%s", fail_msg);
             return false;
         }
-    }
+   }
 #endif
     return true;
 }
@@ -1846,3 +1851,5 @@ AP_Arming &arming()
 }
 
 };
+
+#pragma GCC diagnostic pop

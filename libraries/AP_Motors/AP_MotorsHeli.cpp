@@ -503,16 +503,6 @@ bool AP_MotorsHeli::parameter_check(bool display_msg) const
     return true;
 }
 
-// reset_swash_servo
-void AP_MotorsHeli::reset_swash_servo(SRV_Channel::Aux_servo_function_t function)
-{
-    // outputs are defined on a -500 to 500 range for swash servos
-    SRV_Channels::set_range(function, 1000);
-
-    // swash servos always use full endpoints as restricting them would lead to scaling errors
-    SRV_Channels::set_output_min_max(function, 1000, 2000);
-}
-
 // update the throttle input filter
 void AP_MotorsHeli::update_throttle_filter()
 {
@@ -533,17 +523,6 @@ void AP_MotorsHeli::reset_flight_controls()
     _servo_mode.set(SERVO_CONTROL_MODE_AUTOMATED);
     init_outputs();
     calculate_scalars();
-}
-
-// convert input in -1 to +1 range to pwm output for swashplate servo.
-// The value 0 corresponds to the trim value of the servo. Swashplate
-// servo travel range is fixed to 1000 pwm and therefore the input is
-// multiplied by 500 to get PWM output.
-void AP_MotorsHeli::rc_write_swash(uint8_t chan, float swash_in)
-{
-    uint16_t pwm = (uint16_t)(1500 + 500 * swash_in);
-    SRV_Channel::Aux_servo_function_t function = SRV_Channels::get_motor_function(chan);
-    SRV_Channels::set_output_pwm_trimmed(function, pwm);
 }
 
 // update the collective input filter.  should be called at 100hz

@@ -45,6 +45,7 @@ class AP_Mount_Gremsy;
 class AP_Mount_Siyi;
 class AP_Mount_Scripting;
 class AP_Mount_Xacti;
+class AP_Mount_Viewpro;
 
 /*
   This is a workaround to allow the MAVLink backend access to the
@@ -64,6 +65,7 @@ class AP_Mount
     friend class AP_Mount_Siyi;
     friend class AP_Mount_Scripting;
     friend class AP_Mount_Xacti;
+    friend class AP_Mount_Viewpro;
 
 public:
     AP_Mount();
@@ -108,6 +110,9 @@ public:
 #endif
 #if HAL_MOUNT_XACTI_ENABLED
         Xacti = 10,          /// Xacti DroneCAN gimbal driver
+#endif
+#if HAL_MOUNT_VIEWPRO_ENABLED
+        Viewpro = 11,        /// Viewpro gimbal using a custom serial protocol
 #endif
     };
 
@@ -217,6 +222,11 @@ public:
     // set focus specified as rate, percentage or auto
     // focus in = -1, focus hold = 0, focus out = 1
     SetFocusResult set_focus(uint8_t instance, FocusType focus_type, float focus_value);
+
+    // set tracking to none, point or rectangle (see TrackingType enum)
+    // if POINT only p1 is used, if RECTANGLE then p1 is top-left, p2 is bottom-right
+    // p1,p2 are in range 0 to 1.  0 is left or top, 1 is right or bottom
+    bool set_tracking(uint8_t instance, TrackingType tracking_type, const Vector2f& p1, const Vector2f& p2);
 
     // send camera information message to GCS
     void send_camera_information(mavlink_channel_t chan) const;

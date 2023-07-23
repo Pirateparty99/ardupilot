@@ -215,16 +215,7 @@ void AP_MotorsHeli_Dual::set_update_rate( uint16_t speed_hz )
     _speed_hz = speed_hz;
 
     // setup fast channels
-    uint32_t mask = 0;
-    for (uint8_t i=0; i<AP_MOTORS_HELI_DUAL_NUM_SWASHPLATE_SERVOS; i++) {
-        mask |= 1U << (AP_MOTORS_MOT_1+i);
-    }
-    if (_swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        mask |= 1U << (AP_MOTORS_MOT_7);
-    }
-    if (_swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        mask |= 1U << (AP_MOTORS_MOT_8);
-    }
+    uint32_t mask = _swashplate1.get_output_mask() | _swashplate2.get_output_mask();
 
     rc_set_freq(mask, _speed_hz);
 }
@@ -233,31 +224,8 @@ void AP_MotorsHeli_Dual::set_update_rate( uint16_t speed_hz )
 void AP_MotorsHeli_Dual::init_outputs()
 {
     if (!initialised_ok()) {
-        // make sure 6 output channels are mapped
-        for (uint8_t i=0; i<AP_MOTORS_HELI_DUAL_NUM_SWASHPLATE_SERVOS; i++) {
-            add_motor_num(CH_1+i);
-        }
-        if (_swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-            add_motor_num(CH_7);
-        }
-        if (_swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-            add_motor_num(CH_8);
-        }
-
         // set rotor servo range
         _main_rotor.init_servo();
-
-    }
-
-    // reset swash servo range and endpoints
-    for (uint8_t i=0; i<AP_MOTORS_HELI_DUAL_NUM_SWASHPLATE_SERVOS; i++) {
-        reset_swash_servo(SRV_Channels::get_motor_function(i));
-    }
-    if (_swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        reset_swash_servo(SRV_Channels::get_motor_function(6));
-    }
-    if (_swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        reset_swash_servo(SRV_Channels::get_motor_function(7));
     }
 
     set_initialised_ok(_frame_class == MOTOR_FRAME_HELI_DUAL);
@@ -326,11 +294,9 @@ void AP_MotorsHeli_Dual::calculate_scalars()
 
     // configure swashplate 1 and update scalars
     _swashplate1.configure();
-    _swashplate1.calculate_roll_pitch_collective_factors();
 
     // configure swashplate 2 and update scalars
     _swashplate2.configure();
-    _swashplate2.calculate_roll_pitch_collective_factors();
 
     // set mode of main rotor controller and trigger recalculation of scalars
     _main_rotor.set_control_mode(static_cast<RotorControlMode>(_main_rotor._rsc_mode.get()));
@@ -559,21 +525,9 @@ void AP_MotorsHeli_Dual::move_actuators(float roll_out, float pitch_out, float c
     float swash2_roll = get_swashplate(2, AP_MOTORS_HELI_DUAL_SWASH_AXIS_ROLL, pitch_out, roll_out, yaw_out, collective2_out_scaled);
     float swash2_coll = get_swashplate(2, AP_MOTORS_HELI_DUAL_SWASH_AXIS_COLL, pitch_out, roll_out, yaw_out, collective2_out_scaled);
  
-    // get servo positions from swashplate library
-    _servo_out[CH_1] = _swashplate1.get_servo_out(CH_1,swash1_pitch,swash1_roll,swash1_coll);
-    _servo_out[CH_2] = _swashplate1.get_servo_out(CH_2,swash1_pitch,swash1_roll,swash1_coll);
-    _servo_out[CH_3] = _swashplate1.get_servo_out(CH_3,swash1_pitch,swash1_roll,swash1_coll);
-    if (_swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        _servo_out[CH_7] = _swashplate1.get_servo_out(CH_4,swash1_pitch,swash1_roll,swash1_coll);
-    }
-
-    // get servo positions from swashplate library
-    _servo_out[CH_4] = _swashplate2.get_servo_out(CH_1,swash2_pitch,swash2_roll,swash2_coll);
-    _servo_out[CH_5] = _swashplate2.get_servo_out(CH_2,swash2_pitch,swash2_roll,swash2_coll);
-    _servo_out[CH_6] = _swashplate2.get_servo_out(CH_3,swash2_pitch,swash2_roll,swash2_coll);
-    if (_swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        _servo_out[CH_8] = _swashplate2.get_servo_out(CH_4,swash2_pitch,swash2_roll,swash2_coll);
-    }
+    // Calculate servo positions in swashplate library
+    _swashplate1.calculate(swash1_roll, swash1_pitch, swash1_coll);
+    _swashplate2.calculate(swash2_roll, swash2_pitch, swash2_coll);
 
 }
 
@@ -582,19 +536,10 @@ void AP_MotorsHeli_Dual::output_to_motors()
     if (!initialised_ok()) {
         return;
     }
-    // actually move the servos.  PWM is sent based on nominal 1500 center.  servo output shifts center based on trim value.
-    for (uint8_t i=0; i<AP_MOTORS_HELI_DUAL_NUM_SWASHPLATE_SERVOS; i++) {
-        rc_write_swash(i, _servo_out[CH_1+i]);
-    }
 
-    // write to servo for 4 servo of 4 servo swashplate
-    if (_swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate1.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        rc_write_swash(AP_MOTORS_MOT_7, _servo_out[CH_7]);
-    }
-    // write to servo for 4 servo of 4 servo swashplate
-    if (_swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate2.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        rc_write_swash(AP_MOTORS_MOT_8, _servo_out[CH_8]);
-    }
+    // Write swashplate outputs
+    _swashplate1.output();
+    _swashplate2.output();
 
     switch (_spool_state) {
         case SpoolState::SHUT_DOWN:

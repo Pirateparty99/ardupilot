@@ -188,14 +188,8 @@ void AP_MotorsHeli_Single::set_update_rate( uint16_t speed_hz )
     _speed_hz = speed_hz;
 
     // setup fast channels
-    uint32_t mask = 
-        1U << AP_MOTORS_MOT_1 |
-        1U << AP_MOTORS_MOT_2 |
-        1U << AP_MOTORS_MOT_3 |
-        1U << AP_MOTORS_MOT_4;
-    if (_swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        mask |= 1U << (AP_MOTORS_MOT_5);
-    }
+    uint32_t mask = (1U << AP_MOTORS_MOT_4) | _swashplate.get_output_mask();
+
     rc_set_freq(mask, _speed_hz);
 }
 
@@ -203,14 +197,6 @@ void AP_MotorsHeli_Single::set_update_rate( uint16_t speed_hz )
 void AP_MotorsHeli_Single::init_outputs()
 {
     if (!initialised_ok()) {
-        // map primary swash servos
-        for (uint8_t i=0; i<AP_MOTORS_HELI_SINGLE_NUM_SWASHPLATE_SERVOS; i++) {
-            add_motor_num(CH_1+i);
-        }
-        if (_swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-            add_motor_num(CH_5);
-        }
-
         // yaw servo
         add_motor_num(CH_4);
 
@@ -228,14 +214,6 @@ void AP_MotorsHeli_Single::init_outputs()
     if (_tail_type == AP_MOTORS_HELI_SINGLE_TAILTYPE_SERVO_EXTGYRO) {
         // External Gyro uses PWM output thus servo endpoints are forced
         SRV_Channels::set_output_min_max(SRV_Channels::get_motor_function(AP_MOTORS_HELI_SINGLE_EXTGYRO), 1000, 2000);
-    }
-
-    // reset swash servo range and endpoints
-    for (uint8_t i=0; i<AP_MOTORS_HELI_SINGLE_NUM_SWASHPLATE_SERVOS; i++) {
-        reset_swash_servo(SRV_Channels::get_motor_function(i));
-    }
-    if (_swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        reset_swash_servo(SRV_Channels::get_motor_function(4));
     }
 
     if (_tail_type != AP_MOTORS_HELI_SINGLE_TAILTYPE_DIRECTDRIVE_VARPITCH && _tail_type != AP_MOTORS_HELI_SINGLE_TAILTYPE_DIRECTDRIVE_VARPIT_EXT_GOV) {
@@ -317,7 +295,6 @@ void AP_MotorsHeli_Single::calculate_scalars()
 
     // configure swashplate and update scalars
     _swashplate.configure();
-    _swashplate.calculate_roll_pitch_collective_factors();
 
     // send setpoints to main rotor controller and trigger recalculation of scalars
     _main_rotor.set_control_mode(static_cast<RotorControlMode>(_main_rotor._rsc_mode.get()));
@@ -461,13 +438,8 @@ void AP_MotorsHeli_Single::move_actuators(float roll_out, float pitch_out, float
     float collective_scalar = ((float)(_collective_max-_collective_min))*0.001f;
     float collective_out_scaled = collective_out * collective_scalar + (_collective_min - 1000)*0.001f;
 
-    // get servo positions from swashplate library
-    _servo1_out = _swashplate.get_servo_out(CH_1,pitch_out,roll_out,collective_out_scaled);
-    _servo2_out = _swashplate.get_servo_out(CH_2,pitch_out,roll_out,collective_out_scaled);
-    _servo3_out = _swashplate.get_servo_out(CH_3,pitch_out,roll_out,collective_out_scaled);
-    if (_swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        _servo5_out = _swashplate.get_servo_out(CH_4,pitch_out,roll_out,collective_out_scaled);
-    }
+    // Caculate servo positions from swashplate library
+    _swashplate.calculate(roll_out, pitch_out, collective_out_scaled);
 
     // update the yaw rate using the tail rotor/servo
     move_yaw(yaw_out + yaw_offset);
@@ -495,14 +467,9 @@ void AP_MotorsHeli_Single::output_to_motors()
         return;
     }
 
-    // actually move the servos.  PWM is sent based on nominal 1500 center.  servo output shifts center based on trim value.
-    rc_write_swash(AP_MOTORS_MOT_1, _servo1_out);
-    rc_write_swash(AP_MOTORS_MOT_2, _servo2_out);
-    rc_write_swash(AP_MOTORS_MOT_3, _servo3_out);
-    // get servo positions from swashplate library and write to servo for 4 servo of 4 servo swashplate
-    if (_swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_90 || _swashplate.get_swash_type() == SWASHPLATE_TYPE_H4_45) {
-        rc_write_swash(AP_MOTORS_MOT_5, _servo5_out);
-    }
+    // Write swashplate outputs
+    _swashplate.output();
+
     if (_tail_type != AP_MOTORS_HELI_SINGLE_TAILTYPE_DIRECTDRIVE_FIXEDPITCH_CW && _tail_type != AP_MOTORS_HELI_SINGLE_TAILTYPE_DIRECTDRIVE_FIXEDPITCH_CCW){
         rc_write_angle(AP_MOTORS_MOT_4, _servo4_out * YAW_SERVO_MAX_ANGLE);
     }

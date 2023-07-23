@@ -649,7 +649,8 @@ class sitl(Board):
             cfg.define('HAL_NUM_CAN_IFACES', 2)
             env.DEFINES.update(CANARD_MULTI_IFACE=1,
                                CANARD_IFACE_ALL = 0x3,
-                                CANARD_ENABLE_CANFD = 1)
+                                CANARD_ENABLE_CANFD = 1,
+                                CANARD_ENABLE_ASSERTS = 1)
 
         env.CXXFLAGS += [
             '-Werror=float-equal',
@@ -803,6 +804,7 @@ class sitl_periph_gps(sitl):
             CAN_APP_NODE_NAME = '"org.ardupilot.ap_periph_gps"',
             AP_AIRSPEED_ENABLED = 0,
             HAL_PERIPH_ENABLE_GPS = 1,
+            AP_UART_MONITOR_ENABLED = 1,
             HAL_CAN_DEFAULT_NODE_ID = 0,
             HAL_RAM_RESERVE_START = 0,
             APJ_BOARD_ID = 100,
@@ -1054,7 +1056,7 @@ class chibios(Board):
         if cfg.env.SAVE_TEMPS:
             env.CXXFLAGS += [ '-S', '-save-temps=obj' ]
 
-        if cfg.options.disable_watchdog or cfg.env.DEBUG:
+        if cfg.options.disable_watchdog:
             cfg.msg("Disabling Watchdog", "yes")
             env.CFLAGS += [ '-DDISABLE_WATCHDOG' ]
             env.CXXFLAGS += [ '-DDISABLE_WATCHDOG' ]

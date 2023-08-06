@@ -115,6 +115,10 @@ public:
     void take_picture();
     void take_picture(uint8_t instance);
 
+    // take multiple pictures, time_interval between two consecutive pictures is in miliseconds
+    // total_num is number of pictures to be taken, -1 means capture forever
+    void take_multiple_pictures(uint32_t time_interval_ms, int16_t total_num);
+
     // start/stop recording video
     // start_recording should be true to start recording, false to stop recording
     bool record_video(bool start_recording);
@@ -134,6 +138,10 @@ public:
     // p1,p2 are in range 0 to 1.  0 is left or top, 1 is right or bottom
     bool set_tracking(TrackingType tracking_type, const Vector2f& p1, const Vector2f& p2);
     bool set_tracking(uint8_t instance, TrackingType tracking_type, const Vector2f& p1, const Vector2f& p2);
+
+    // set camera lens as a value from 0 to 5
+    bool set_lens(uint8_t lens);
+    bool set_lens(uint8_t instance, uint8_t lens);
 
     // set if vehicle is in AUTO mode
     void set_is_auto_mode(bool enable) { _is_in_auto_mode = enable; }

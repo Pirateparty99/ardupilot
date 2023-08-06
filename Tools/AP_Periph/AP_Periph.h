@@ -25,6 +25,7 @@
 #include <AP_Scripting/AP_Scripting.h>
 #include <AP_HAL/CANIface.h>
 #include <AP_Stats/AP_Stats.h>
+#include <AP_Networking/AP_Networking.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_ESC_Telem/AP_ESC_Telem_config.h>
 #if HAL_WITH_ESC_TELEM
@@ -303,6 +304,10 @@ public:
     AP_Logger logger;
 #endif
 
+#ifdef HAL_PERIPH_ENABLE_NETWORKING
+    AP_Networking networking;
+#endif
+
 #if HAL_GCS_ENABLED
     GCS_Periph _gcs;
 #endif
@@ -345,7 +350,7 @@ public:
                                  uint16_t payload_len);
 
 #if AP_UART_MONITOR_ENABLED
-    void handle_tunnel_Targetted(CanardInstance* ins, CanardRxTransfer* transfer);
+    void handle_tunnel_Targetted(CanardInstance* canard_instance, CanardRxTransfer* transfer);
     void send_serial_monitor_data();
     int8_t get_default_tunnel_serial_port(void) const;
 

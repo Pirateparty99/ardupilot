@@ -345,7 +345,7 @@ void ModeAuto::auto_loiter_run()
 // set_auto_yaw_look_at_heading - sets the yaw look at heading for auto mode
 void ModeAuto::set_auto_yaw_look_at_heading(float angle_deg, float turn_rate_dps, int8_t direction, uint8_t relative_angle)
 {
-    // get current yaw target
+    // get current yaw
     int32_t curr_yaw_target = attitude_control->get_att_target_euler_cd().z;
 
     // get final angle, 1 = Relative, 0 = Absolute
@@ -357,24 +357,32 @@ void ModeAuto::set_auto_yaw_look_at_heading(float angle_deg, float turn_rate_dps
         if (direction < 0) {
             angle_deg = -angle_deg;
         }
-        sub.yaw_look_at_heading = wrap_360_cd((angle_deg*100+curr_yaw_target));
+        sub.yaw_look_at_heading = wrap_360_cd((angle_deg * 100 + curr_yaw_target));
     }
 
     // get turn speed
-    // TODO actually implement this, right now, yaw_look_at_heading_slew is unused
-    // see AP_Float _slew_yaw in AC_AttitudeControl
     if (is_zero(turn_rate_dps)) {
         // default to regular auto slew rate
         sub.yaw_look_at_heading_slew = AUTO_YAW_SLEW_RATE;
     } else {
-        int32_t turn_rate = (wrap_180_cd(sub.yaw_look_at_heading - curr_yaw_target) / 100) / turn_rate_dps;
-        sub.yaw_look_at_heading_slew = constrain_int32(turn_rate, 1, 360);    // deg / sec
+        sub.yaw_look_at_heading_slew = MIN(turn_rate_dps, AUTO_YAW_SLEW_RATE);    // deg / sec
     }
 
     // set yaw mode
     set_auto_yaw_mode(AUTO_YAW_LOOK_AT_HEADING);
 
     // TO-DO: restore support for clockwise and counter clockwise rotation held in cmd.content.yaw.direction.  1 = clockwise, -1 = counterclockwise
+}
+
+
+// sets the desired yaw rate
+void ModeAuto::set_yaw_rate(float turn_rate_dps)
+{    
+    // set sub to desired yaw rate
+    sub.yaw_look_at_heading_slew = MIN(turn_rate_dps, AUTO_YAW_SLEW_RATE);    // deg / sec
+
+    // set yaw mode
+    set_auto_yaw_mode(AUTO_YAW_RATE);
 }
 
 // set_auto_yaw_roi - sets the yaw to look at roi for auto mode

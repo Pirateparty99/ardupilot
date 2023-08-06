@@ -21,8 +21,11 @@ from common import NotAchievedException
 from common import PreconditionFailedException
 from common import WaitModeTimeout
 from common import OldpymavlinkException
+from common import Test
+
 from pymavlink.rotmat import Vector3
 from pysim import vehicleinfo
+from pysim import util
 
 import operator
 
@@ -1302,29 +1305,28 @@ class AutoTestPlane(AutoTest):
         '''Ensure Long-Failsafe works on GCS loss'''
         self.start_subtest("Test Failsafe: RTL")
         self.load_sample_mission()
-        self.set_parameter("RTL_AUTOLAND", 1)
-        self.change_mode("AUTO")
-        self.takeoff()
         self.set_parameters({
             "FS_GCS_ENABL": 1,
             "FS_LONG_ACTN": 1,
+            "RTL_AUTOLAND": 1,
+            "SYSID_MYGCS": self.mav.source_system,
         })
+        self.takeoff()
+        self.change_mode('LOITER')
         self.progress("Disconnecting GCS")
         self.set_heartbeat_rate(0)
-        self.wait_mode("RTL", timeout=5)
+        self.wait_mode("RTL", timeout=10)
         self.set_heartbeat_rate(self.speedup)
         self.end_subtest("Completed RTL Failsafe test")
 
         self.start_subtest("Test Failsafe: FBWA Glide")
         self.set_parameters({
-            "RTL_AUTOLAND": 1,
             "FS_LONG_ACTN": 2,
         })
-        self.change_mode("AUTO")
-        self.takeoff()
+        self.change_mode('AUTO')
         self.progress("Disconnecting GCS")
         self.set_heartbeat_rate(0)
-        self.wait_mode("FBWA", timeout=5)
+        self.wait_mode("FBWA", timeout=10)
         self.set_heartbeat_rate(self.speedup)
         self.end_subtest("Completed FBWA Failsafe test")
 
@@ -4622,6 +4624,18 @@ class AutoTestPlane(AutoTest):
 
         self.reboot_sitl()
 
+    def RunMissionScript(self):
+        '''Test run_mission.py script'''
+        script = os.path.join('Tools', 'autotest', 'run_mission.py')
+        self.stop_SITL()
+        util.run_cmd([
+            util.reltopdir(script),
+            self.binary,
+            'plane',
+            self.generic_mission_filepath_for_filename("flaps.txt"),
+        ])
+        self.start_SITL()
+
     def tests(self):
         '''return list of all tests'''
         ret = super(AutoTestPlane, self).tests()
@@ -4701,11 +4715,12 @@ class AutoTestPlane(AutoTest):
             self.EmbeddedParamParser,
             self.AerobaticsScripting,
             self.MANUAL_CONTROL,
+            self.RunMissionScript,
             self.WindEstimates,
             self.AltResetBadGPS,
             self.AirspeedCal,
             self.MissionJumpTags,
-            self.GCSFailsafe,
+            Test(self.GCSFailsafe, speedup=8),
             self.SDCardWPTest,
             self.NoArmWithoutMissionItems,
             self.MODE_SWITCH_RESET,

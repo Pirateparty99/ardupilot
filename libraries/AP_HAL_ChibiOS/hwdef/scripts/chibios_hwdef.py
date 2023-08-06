@@ -19,7 +19,7 @@ class ChibiOSHWDef(object):
     # output variables for each pin
     f4f7_vtypes = ['MODER', 'OTYPER', 'OSPEEDR', 'PUPDR', 'ODR', 'AFRL', 'AFRH']
     f1_vtypes = ['CRL', 'CRH', 'ODR']
-    af_labels = ['USART', 'UART', 'SPI', 'I2C', 'SDIO', 'SDMMC', 'OTG', 'JT', 'TIM', 'CAN', 'QUADSPI', 'OCTOSPI']
+    af_labels = ['USART', 'UART', 'SPI', 'I2C', 'SDIO', 'SDMMC', 'OTG', 'JT', 'TIM', 'CAN', 'QUADSPI', 'OCTOSPI', 'ETH']
 
     def __init__(self, bootloader=False, signed_fw=False, outdir=None, hwdef=[], default_params_filepath=None):
         self.outdir = outdir
@@ -931,6 +931,20 @@ class ChibiOSHWDef(object):
         if 'OTG2' in self.bytype:
             f.write('#define STM32_USB_USE_OTG2                  TRUE\n')
 
+        if 'ETH1' in self.bytype:
+            f.write('// Configure for Ethernet support\n')
+            f.write('#define CH_CFG_USE_MAILBOXES                TRUE\n')
+            f.write('#define HAL_USE_MAC                         TRUE\n')
+            f.write('#define MAC_USE_EVENTS                      TRUE\n')
+            f.write('#define STM32_ETH_BUFFERS_EXTERN\n')
+            f.write('#define AP_NETWORKING_ENABLED               TRUE\n')
+            self.build_flags.append('USE_LWIP=yes')
+            self.env_vars['WITH_NETWORKING'] = True
+        else:
+            f.write('#define AP_NETWORKING_ENABLED               FALSE\n')
+            self.build_flags.append('USE_LWIP=no')
+            self.env_vars['WITH_NETWORKING'] = False
+
         defines = self.get_mcu_config('DEFINES', False)
         if defines is not None:
             for d in defines.keys():
@@ -1378,6 +1392,7 @@ INCLUDE common.ld
            ram0_start, ram0_len,
            ram1_start, ram1_len,
            ram2_start, ram2_len))
+        f.close()
 
     def copy_common_linkerscript(self, outdir):
         dirpath = os.path.dirname(os.path.realpath(__file__))
@@ -1908,7 +1923,7 @@ INCLUDE common.ld
                 f.write('''
 #if defined(HAL_NUM_CAN_IFACES) && HAL_NUM_CAN_IFACES
 #ifndef HAL_OTG2_PROTOCOL
-#define HAL_OTG2_PROTOCOL SerialProtocol_SLCAN
+#define HAL_OTG2_PROTOCOL SerialProtocol_MAVLink2
 #endif
 #define DEFAULT_SERIAL%d_PROTOCOL HAL_OTG2_PROTOCOL
 #define DEFAULT_SERIAL%d_BAUD 115200
@@ -2826,7 +2841,7 @@ INCLUDE common.ld
         '''check type of a pin line is valid'''
         patterns = [ 'INPUT', 'OUTPUT', 'TIM\d+', 'USART\d+', 'UART\d+', 'ADC\d+',
                     'SPI\d+', 'OTG\d+', 'SWD', 'CAN\d?', 'I2C\d+', 'CS',
-                    'SDMMC\d+', 'SDIO', 'QUADSPI\d', 'OCTOSPI\d'  ]
+                    'SDMMC\d+', 'SDIO', 'QUADSPI\d', 'OCTOSPI\d', 'ETH\d'  ]
         matches = False
         for p in patterns:
             if re.match(p, ptype):

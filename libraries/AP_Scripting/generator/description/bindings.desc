@@ -169,14 +169,23 @@ singleton AP_Notify method handle_rgb void uint8_t'skip_check uint8_t'skip_check
 singleton AP_Notify method handle_rgb_id void uint8_t'skip_check uint8_t'skip_check uint8_t'skip_check uint8_t'skip_check
 
 include AP_Proximity/AP_Proximity.h
+include AP_Proximity/AP_Proximity_Backend.h
 
 singleton AP_Proximity depends HAL_PROXIMITY_ENABLED == 1
+ap_object AP_Proximity_Backend depends HAL_PROXIMITY_ENABLED == 1
+ap_object AP_Proximity_Backend method handle_script_distance_msg boolean float'skip_check float'skip_check float'skip_check boolean
+ap_object AP_Proximity_Backend method handle_script_3d_msg boolean Vector3f boolean
+ap_object AP_Proximity_Backend method type uint8_t
+ap_object AP_Proximity_Backend method set_distance_min_max boolean float'skip_check float'skip_check
+ap_object AP_Proximity_Backend method update_virtual_boundary boolean
+
 singleton AP_Proximity rename proximity
 singleton AP_Proximity method get_status uint8_t
 singleton AP_Proximity method num_sensors uint8_t
 singleton AP_Proximity method get_object_count uint8_t
 singleton AP_Proximity method get_closest_object boolean float'Null float'Null
 singleton AP_Proximity method get_object_angle_and_distance boolean uint8_t'skip_check float'Null float'Null
+singleton AP_Proximity method get_backend AP_Proximity_Backend uint8_t'skip_check
 
 include AP_RangeFinder/AP_RangeFinder.h
 include AP_RangeFinder/AP_RangeFinder_Backend.h
@@ -263,6 +272,7 @@ singleton AP_Vehicle method set_target_angle_and_climbrate boolean float -180 18
 singleton AP_Vehicle method get_circle_radius boolean float'Null
 singleton AP_Vehicle method set_circle_rate boolean float'skip_check
 singleton AP_Vehicle method set_steering_and_throttle boolean float -1 1 float -1 1
+singleton AP_Vehicle method get_steering_and_throttle boolean float'Null float'Null
 singleton AP_Vehicle method get_wp_distance_m boolean float'Null
 singleton AP_Vehicle method get_wp_bearing_deg boolean float'Null
 singleton AP_Vehicle method get_wp_crosstrack_error_m boolean float'Null
@@ -597,6 +607,14 @@ singleton AP_Follow method get_target_heading_deg boolean float'Null
 include AC_AttitudeControl/AC_AttitudeControl.h depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)||APM_BUILD_COPTER_OR_HELI
 singleton AC_AttitudeControl depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)||APM_BUILD_COPTER_OR_HELI
 singleton AC_AttitudeControl method get_rpy_srate void float'Ref float'Ref float'Ref
+
+include APM_Control/AR_AttitudeControl.h depends APM_BUILD_TYPE(APM_BUILD_Rover)
+singleton AR_AttitudeControl depends APM_BUILD_TYPE(APM_BUILD_Rover)
+singleton AR_AttitudeControl method get_srate void float'Ref float'Ref
+
+include APM_Control/AR_PosControl.h depends APM_BUILD_TYPE(APM_BUILD_Rover)
+singleton AR_PosControl depends APM_BUILD_TYPE(APM_BUILD_Rover)
+singleton AR_PosControl method get_srate void float'Ref
 
 include AP_Mount/AP_Mount.h
 singleton AP_Mount depends HAL_MOUNT_ENABLED == 1

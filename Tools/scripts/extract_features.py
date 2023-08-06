@@ -199,6 +199,7 @@ class ExtractFeatures(object):
 
             ('AP_INERTIALSENSOR_KILL_IMU_ENABLED', r'AP_InertialSensor::kill_imu'),
             ('AP_CRASHDUMP_ENABLED', 'CrashCatcher_DumpMemory'),
+            ('AP_CAN_SLCAN_ENABLED', 'SLCAN::CANIface::var_info'),
         ]
 
     def progress(self, msg):
@@ -378,11 +379,20 @@ class ExtractFeatures(object):
 
         ret = ""
 
-        for compiled_in_feature_define in sorted(compiled_in_feature_defines):
-            ret += compiled_in_feature_define + "\n"
-        for remaining in sorted(not_compiled_in_feature_defines):
-            ret += "!" + remaining + "\n"
+        combined = {}
+        for define in sorted(compiled_in_feature_defines):
+            combined[define] = True
+        for define in sorted(not_compiled_in_feature_defines):
+            combined[define] = False
 
+        def squash_hal_to_ap(a):
+            return re.sub("^HAL_", "AP_", a)
+
+        for define in sorted(combined.keys(), key=squash_hal_to_ap):
+            bang = ""
+            if not combined[define]:
+                bang = "!"
+            ret += bang + define + "\n"
         return ret
 
     def run(self):

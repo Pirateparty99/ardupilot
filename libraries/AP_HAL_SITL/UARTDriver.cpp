@@ -263,18 +263,7 @@ size_t UARTDriver::_write(const uint8_t *buffer, size_t size)
     if (size <= 0) {
         return 0;
     }
-    if (_unbuffered_writes) {
-        const ssize_t nwritten = ::write(_fd, buffer, size);
-        if (nwritten == -1 && errno != EAGAIN && _uart_path) {
-            close(_fd);
-            _fd = -1;
-            _connected = false;
-            return 0;
-        }
-        // these have no effect
-        tcdrain(_fd);
-        return nwritten;
-    } else {
+
         /*
           simulate byte loss at the link layer
          */
@@ -288,8 +277,13 @@ size_t UARTDriver::_write(const uint8_t *buffer, size_t size)
             }
         }
 #endif // HAL_BUILD_AP_PERIPH
-        return _writebuffer.write(buffer, size - lost_byte) + lost_byte;
+
+
+    const size_t ret = _writebuffer.write(buffer, size - lost_byte) + lost_byte;
+    if (_unbuffered_writes) {
+        handle_writing_from_writebuffer_to_device();
     }
+    return ret;
 }
 
     
@@ -796,7 +790,7 @@ uint16_t UARTDriver::read_from_async_csv(uint8_t *buffer, uint16_t space)
     return i;
 }
 
-void UARTDriver::_timer_tick(void)
+void UARTDriver::handle_writing_from_writebuffer_to_device()
 {
     if (!_connected) {
         _check_reconnect();
@@ -809,12 +803,12 @@ void UARTDriver::_timer_tick(void)
     if (_sitl && _sitl->telem_baudlimit_enable) {
         // limit byte rate to configured baudrate
         uint32_t now = AP_HAL::micros();
-        float dt = 1.0e-6 * (now - last_tick_us);
+        float dt = 1.0e-6 * (now - last_write_tick_us);
         max_bytes = _uart_baudrate * dt / 10;
         if (max_bytes == 0) {
             return;
         }
-        last_tick_us = now;
+        last_write_tick_us = now;
     }
 #endif
     if (_packetise) {
@@ -856,13 +850,37 @@ void UARTDriver::_timer_tick(void)
             }
         }
     }
+}
+
+void UARTDriver::handle_reading_from_device_to_readbuffer()
+{
+    if (!_connected) {
+        _check_reconnect();
+        return;
+    }
 
     uint32_t space = _readbuffer.space();
     if (space == 0) {
         return;
     }
+
+    uint32_t max_bytes = 10000;
+#if !defined(HAL_BUILD_AP_PERIPH)
+    SITL::SIM *_sitl = AP::sitl();
+    if (_sitl && _sitl->telem_baudlimit_enable) {
+        // limit byte rate to configured baudrate
+        uint32_t now = AP_HAL::micros();
+        float dt = 1.0e-6 * (now - last_read_tick_us);
+        max_bytes = _uart_baudrate * dt / 10;
+        if (max_bytes == 0) {
+            return;
+        }
+        last_read_tick_us = now;
+    }
+#endif
+
     space = MIN(space, max_bytes);
-    
+
     char buf[space];
     ssize_t nread = 0;
     if (_mc_fd >= 0) {
@@ -928,6 +946,13 @@ void UARTDriver::_timer_tick(void)
         _receive_timestamp = AP_HAL::micros64();
     }
 }
+
+void UARTDriver::_timer_tick(void)
+{
+    handle_writing_from_writebuffer_to_device();
+    handle_reading_from_device_to_readbuffer();
+}
+
 
 /*
   return timestamp estimate in microseconds for when the start of

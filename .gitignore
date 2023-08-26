@@ -1,3 +1,4 @@
+/docs/*
 /.lock-waf*
 /.waf*
 /Tools/autotest/aircraft/Rascal/reset.xml

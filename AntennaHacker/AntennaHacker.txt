@@ -6,3 +6,7 @@ the drone from a GCS. The first iteration of the project will utilize the Antenn
 stationary functionality to track the target and send a simple Return to Home
 command. Future iterations might include additional commands or scripts
 and will hopefully utilize the mobile AntennaTracker functionality.
+
+Ideas:
+Call module/function/? that sends basic RTH signal and/or land in place
+(Potentially create a menu/interface with a simple list of commands to send to drone?)

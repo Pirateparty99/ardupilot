@@ -7,8 +7,6 @@ AP_FLAKE8_CLEAN
 
 """
 
-from __future__ import print_function
-
 import optparse
 import sys
 import time
@@ -41,7 +39,7 @@ class DU32Change(object):
             "land_complete",
             "new_radio_frame",
             "usb_connected_unused",
-            "rc_receiver_present",
+            "rc_receiver_present_unused",
             "compass_mot",
             "motor_test",
             "initialised",

@@ -9,7 +9,7 @@ FLASH_BOOTLOADER_LOAD_KB 22
 # reserve some space for params
 APP_START_OFFSET_KB 4
 
-# board ID for firmware load
+# board ID. See Tools/AP_Bootloader/board_types.txt
 APJ_BOARD_ID 1004
 
 # setup build for a peripheral firmware
@@ -29,7 +29,6 @@ STDOUT_BAUDRATE 57600
 
 # order of UARTs
 SERIAL_ORDER
-define HAL_USE_UART FALSE
 
 PA4 LED_BOOTLOADER OUTPUT LOW
 define HAL_LED_ON 1
@@ -59,13 +58,10 @@ define DMA_RESERVE_SIZE 0
 
 MAIN_STACK 0x800
 PROCESS_STACK 0x800
-define HAL_DISABLE_LOOP_DELAY
 
 # enable CAN support
 PA11 CAN_RX CAN
 PA12 CAN_TX CAN
-define HAL_USE_CAN TRUE
-define STM32_CAN_USE_CAN1 TRUE
 
 # debugger support
 PA13 JTMS-SWDIO SWD

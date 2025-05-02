@@ -8,8 +8,6 @@ based on build_binaries.sh by Andrew Tridgell, March 2013
 AP_FLAKE8_CLEAN
 """
 
-from __future__ import print_function
-
 import datetime
 import optparse
 import os
@@ -493,7 +491,7 @@ is bob we will attempt to checkout bob-AVR'''
                                          "".join([binaryname, framesuffix]))
                 files_to_copy = []
                 extensions = [".apj", ".abin", "_with_bl.hex", ".hex"]
-                if vehicle == 'AP_Periph':
+                if vehicle == 'AP_Periph' or board == "Here4FC":
                     # need bin file for uavcan-gui-tool and MissionPlanner
                     extensions.append('.bin')
                 for extension in extensions:
@@ -548,7 +546,7 @@ is bob we will attempt to checkout bob-AVR'''
                         if not os.path.exists(tdir):
                             self.mkpath(tdir)
                         # must addfwversion even if path already
-                        # exists as we re-use the "beta" directories
+                        # exists as we reuse the "beta" directories
                         self.addfwversion(tdir, vehicle)
                         features_filepath = os.path.join(tdir, "features.txt")
                         if features_text is not None:
@@ -664,6 +662,7 @@ is bob we will attempt to checkout bob-AVR'''
         generator.run()
 
         generator.write_manifest_json(os.path.join(self.binaries, "manifest.json"))
+        generator.write_features_json(os.path.join(self.binaries, "features.json"))
         self.progress("Manifest generation successful")
 
         self.progress("Generating stable releases")
@@ -766,7 +765,7 @@ if __name__ == '__main__':
     tags = cmd_opts.tags
     if len(tags) == 0:
         # FIXME: wedge this defaulting into parser somehow
-        tags = ["stable", "beta-4.3", "beta", "latest"]
+        tags = ["stable", "beta", "latest"]
 
     bb = build_binaries(tags)
     bb.run()

@@ -1,12 +1,14 @@
 /*
-  classes for holding IPv4 and ethernet MAC address parameters
+  class for holding IPv4 address parameters
  */
 
 #include "AP_Networking_Config.h"
 
 #if AP_NETWORKING_ENABLED
 
+#include <arpa/inet.h>
 #include "AP_Networking.h"
+#include <AP_HAL/utility/Socket.h>
 
 const AP_Param::GroupInfo AP_Networking_IPV4::var_info[] = {
     // @Param: 0
@@ -17,21 +19,21 @@ const AP_Param::GroupInfo AP_Networking_IPV4::var_info[] = {
     AP_GROUPINFO("0", 1,  AP_Networking_IPV4, addr[0], 0),
 
     // @Param: 1
-    // @DisplayName: IPv4 Address MSB
+    // @DisplayName: IPv4 Address 2nd byte
     // @Description: IPv4 address. Example: xxx.168.xxx.xxx
     // @Range: 0 255
     // @RebootRequired: True
     AP_GROUPINFO("1", 2,  AP_Networking_IPV4, addr[1], 0),
 
     // @Param: 2
-    // @DisplayName: IPv4 Address MSB
-    // @Description: IPv4 address. Example: xxx.xxx.13.xxx
+    // @DisplayName: IPv4 Address 3rd byte
+    // @Description: IPv4 address. Example: xxx.xxx.144.xxx
     // @Range: 0 255
     // @RebootRequired: True
     AP_GROUPINFO("2", 3,  AP_Networking_IPV4, addr[2], 0),
 
     // @Param: 3
-    // @DisplayName: IPv4 Address MSB
+    // @DisplayName: IPv4 Address 4th byte
     // @Description: IPv4 address. Example: xxx.xxx.xxx.14
     // @Range: 0 255
     // @RebootRequired: True
@@ -40,57 +42,6 @@ const AP_Param::GroupInfo AP_Networking_IPV4::var_info[] = {
     AP_GROUPEND
 };
 
-const AP_Param::GroupInfo AP_Networking_MAC::var_info[] = {
-    // @Param: 0
-    // @DisplayName: MAC Address 1st byte
-    // @Description: MAC address 1st byte
-    // @Range: 0 255
-    // @RebootRequired: True
-    // @User: Advanced
-    AP_GROUPINFO("0", 1,  AP_Networking_MAC, addr[0], 0),
-
-    // @Param: 1
-    // @DisplayName: MAC Address 2nd byte
-    // @Description: MAC address 2nd byte
-    // @Range: 0 255
-    // @RebootRequired: True
-    // @User: Advanced
-    AP_GROUPINFO("1", 2,  AP_Networking_MAC, addr[1], 0),
-
-    // @Param: 2
-    // @DisplayName: MAC Address 3rd byte
-    // @Description: MAC address 3rd byte
-    // @Range: 0 255
-    // @RebootRequired: True
-    // @User: Advanced
-    AP_GROUPINFO("2", 3,  AP_Networking_MAC, addr[2], 0),
-
-    // @Param: 3
-    // @DisplayName: MAC Address 4th byte
-    // @Description: MAC address 4th byte
-    // @Range: 0 255
-    // @RebootRequired: True
-    // @User: Advanced
-    AP_GROUPINFO("3", 4,  AP_Networking_MAC, addr[3], 0),
-
-    // @Param: 4
-    // @DisplayName: MAC Address 5th byte
-    // @Description: MAC address 5th byte
-    // @Range: 0 255
-    // @RebootRequired: True
-    // @User: Advanced
-    AP_GROUPINFO("4", 5,  AP_Networking_MAC, addr[4], 0),
-
-    // @Param: 5
-    // @DisplayName: MAC Address 6th byte
-    // @Description: MAC address 6th byte
-    // @Range: 0 255
-    // @RebootRequired: True
-    // @User: Advanced
-    AP_GROUPINFO("5", 6,  AP_Networking_MAC, addr[5], 0),
-    
-    AP_GROUPEND
-};
 
 /*
   IPV4 address parameter class
@@ -98,7 +49,7 @@ const AP_Param::GroupInfo AP_Networking_MAC::var_info[] = {
 AP_Networking_IPV4::AP_Networking_IPV4(const char *default_addr)
 {
     AP_Param::setup_object_defaults(this, var_info);
-    set_default_uint32(AP_Networking::convert_str_to_ip(default_addr));
+    set_default_uint32(SocketAPM::inet_str_to_addr(default_addr));
 }
 
 uint32_t AP_Networking_IPV4::get_uint32(void) const
@@ -119,32 +70,10 @@ void AP_Networking_IPV4::set_default_uint32(uint32_t v)
     }
 }
 
-/*
-  ethernet MAC address parameter class
- */
-AP_Networking_MAC::AP_Networking_MAC(const char *default_addr)
+const char* AP_Networking_IPV4::get_str()
 {
-    AP_Param::setup_object_defaults(this, var_info);
-    uint8_t b[6];
-    if (AP_Networking::convert_str_to_macaddr(default_addr, b)) {
-        for (uint8_t i=0; i<ARRAY_SIZE(addr); i++) {
-            addr[i].set_default(b[i]);
-        }
-    }
-}
-
-void AP_Networking_MAC::get_address(uint8_t v[6]) const
-{
-    for (uint8_t i=0; i<ARRAY_SIZE(addr); i++) {
-        v[i] = uint8_t(addr[i].get());
-    }
-}
-
-void AP_Networking_MAC::set_default_address_byte(uint8_t idx, uint8_t b)
-{
-    if (idx < ARRAY_SIZE(addr)) {
-        addr[idx].set_default(b);
-    }
+    const auto ip = get_uint32();
+    return SocketAPM::inet_addr_to_str(ip, strbuf, sizeof(strbuf));
 }
 
 #endif // AP_NETWORKING_ENABLED

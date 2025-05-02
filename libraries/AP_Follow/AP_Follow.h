@@ -13,6 +13,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
+#include "AP_Follow_config.h"
+
+#if AP_FOLLOW_ENABLED
 
 #include <AP_Common/AP_Common.h>
 #include <AP_Common/Location.h>
@@ -65,10 +68,20 @@ public:
     // true if we have a valid target location estimate
     bool have_target() const;
 
-    // get target's estimated location and velocity (in NED)
+    // get target's estimated position (NED-from-origin) and velocity (in NED)
+    // from position-from-origin.  metres and metres/second
+    bool get_target_position_and_velocity(Vector3p &pos_ned, Vector3f &vel_ned) const;
+
+    // get target's estimated position (NED-from-origin) and velocity (in NED)
+    // from position-from-origin with offsets added.  metres and metres/second
+    bool get_target_position_and_velocity_ofs(Vector3p &pos_ned, Vector3f &vel_ned) const;
+
+    // get target's estimated location and velocity (in NED).  Derived
+    // from position-from-origin.
     bool get_target_location_and_velocity(Location &loc, Vector3f &vel_ned) const;
 
-    // get target's estimated location and velocity (in NED), with offsets added
+    // get target's estimated location and velocity (in NED), with
+    // offsets added.  Derived from position-from-origin.
     bool get_target_location_and_velocity_ofs(Location &loc, Vector3f &vel_ned) const;
     
     // get distance vector to target (in meters), target plus offsets, and target's velocity all in NED frame
@@ -115,6 +128,9 @@ public:
 private:
     static AP_Follow *_singleton;
 
+    // returns true if we should extract information from msg
+    bool should_handle_message(const mavlink_message_t &msg) const;
+
     // get velocity estimate in m/s in NED frame using dt since last update
     bool get_velocity_ned(Vector3f &vel_ned, float dt) const;
 
@@ -130,6 +146,13 @@ private:
     // set recorded distance and bearing to target to zero
     void clear_dist_and_bearing_to_target();
 
+    // handle various mavlink messages supplying position:
+    bool handle_global_position_int_message(const mavlink_message_t &msg);
+    bool handle_follow_target_message(const mavlink_message_t &msg);
+
+    // write out an onboard-log message to help diagnose follow problems:
+    void Log_Write_FOLL();
+
     // parameters
     AP_Int8     _enabled;           // 1 if this subsystem is enabled
     AP_Int16    _sysid;             // target's mavlink system id (0 to use first sysid seen)
@@ -143,7 +166,7 @@ private:
 
     // local variables
     uint32_t _last_location_update_ms;  // system time of last position update
-    Location _target_location;      // last known location of target
+    Vector3p _target_position_ned;  // last known position of target
     Vector3f _target_velocity_ned;  // last known velocity of target in NED frame in m/s
     Vector3f _target_accel_ned;     // last known acceleration of target in NED frame in m/s/s
     uint32_t _last_heading_update_ms;   // system time of last heading update
@@ -160,3 +183,5 @@ private:
 namespace AP {
     AP_Follow &follow();
 };
+
+#endif

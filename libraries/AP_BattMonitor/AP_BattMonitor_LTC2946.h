@@ -16,14 +16,13 @@ public:
     bool has_cell_voltages() const override { return false; }
     bool has_temperature() const override { return false; }
     bool has_current() const override { return true; }
-    bool reset_remaining(float percentage) override { return false; }
     bool get_cycle_count(uint16_t &cycles) const override { return false; }
 
     virtual void init(void) override;
     virtual void read() override;
     
 private:
-    AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev;
+    AP_HAL::I2CDevice *dev;
 
     bool read_word(const uint8_t reg, uint16_t& data) const;
     void timer(void);

@@ -18,14 +18,15 @@ public:
     bool has_cell_voltages() const override { return false; }
     bool has_temperature() const override { return false; }
     bool has_current() const override { return true; }
-    bool reset_remaining(float percentage) override { return false; }
     bool get_cycle_count(uint16_t &cycles) const override { return false; }
 
     void init(void) override;
     void read() override;
 
+    static const struct AP_Param::GroupInfo var_info[];
+
 protected:
-    AP_HAL::OwnPtr<AP_HAL::Device> dev;
+    AP_HAL::Device *dev;
 
     void configure(void);
     bool read_word(const uint8_t reg, int16_t& data) const;
@@ -45,6 +46,9 @@ protected:
     } accumulate;
     float current_LSB;
     float voltage_LSB;
+
+    AP_Float max_amps;
+    AP_Float rShunt;
 };
 
 #endif // AP_BATTERY_INA239_ENABLED

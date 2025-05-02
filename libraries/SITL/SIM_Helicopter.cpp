@@ -33,7 +33,7 @@ Helicopter::Helicopter(const char *frame_str) :
         _time_delay = 30;
         nominal_rpm = 1300;
         mass = 9.08f;
-        iyy = 0.2f;
+        iyy = 5.0f;
     } else if (strstr(frame_str, "-compound")) {
         frame_type = HELI_FRAME_COMPOUND;
         _time_delay = 50;
@@ -104,7 +104,7 @@ void Helicopter::update(const struct sitl_input &input)
         }
     } else if (servos_stored_buffer == nullptr) {
         uint16_t buffer_size = constrain_int16(_time_delay, 1, 100) * 0.001f / dt;
-        servos_stored_buffer = new ObjectBuffer<servos_stored>(buffer_size);
+        servos_stored_buffer = NEW_NOTHROW ObjectBuffer<servos_stored>(buffer_size);
         while (servos_stored_buffer->space() != 0) {
             push_to_buffer(input.servos);
         }
@@ -132,13 +132,13 @@ void Helicopter::update(const struct sitl_input &input)
         float Lv = -0.006;
         float Xu = -0.125;
         float Yv = -0.375;
-        float Zw = -0.375;
+        float Zw = -2.25;
 
         float tail_rotor = (_servos_delayed[3]-1000) / 1000.0f;
 
         // thrust calculated based on 5 deg hover collective for 10lb aircraft at 1500RPM
         float coll = 50.0f * (swash1+swash2+swash3) / 3.0f - 25.0f;
-        thrust = thrust_scale * sq(rpm[0] * 0.104667f) * (0.25* (coll - hover_coll) + hover_coll);
+        thrust = (rpm[0] / nominal_rpm) * thrust_scale * sq(nominal_rpm * 0.104667f) * coll;
 
         // determine RPM
         rpm[0] = update_rpm(rpm[0], rsc, eng_torque, coll, dt);
@@ -218,13 +218,13 @@ void Helicopter::update(const struct sitl_input &input)
 
     case HELI_FRAME_DUAL: {
 
-        float Ma1s = 617.5f;
+        float Ma1s = 617.5f/5.0f;
         float Lb1s = 3588.6f;
         float Mu = 0.003f;
         float Lv = -0.006f;
         float Xu = -0.125f;
         float Yv = -0.375f;
-        float Zw = -0.375f;
+        float Zw = -2.25f;
         float hub_dist = 1.8f; //meters
 
         float swash4 = (_servos_delayed[3]-1000) / 1000.0f;
@@ -254,8 +254,8 @@ void Helicopter::update(const struct sitl_input &input)
         // determine RPM
         rpm[0] = update_rpm(rpm[0], rsc, eng_torque, (coll_1 + coll_2) * 0.5f, dt);
 
-        thrust_1 = 0.5f * thrust_scale * sq(rpm[0] * 0.104667f) * (0.25* (coll_1 - hover_coll) + hover_coll);
-        thrust_2 = 0.5f * thrust_scale * sq(rpm[0] * 0.104667f) * (0.25* (coll_2 - hover_coll) + hover_coll);
+        thrust_1 = 0.5f * thrust_scale * sq(rpm[0] * 0.104667f) * coll_1;
+        thrust_2 = 0.5f * thrust_scale * sq(rpm[0] * 0.104667f) * coll_2;
 
         // rotational acceleration, in rad/s/s, in body frame
         rot_accel.x = (_tpp_angle_1.x + _tpp_angle_2.x) * Lb1s + Lv * velocity_air_bf.y;
@@ -279,11 +279,11 @@ void Helicopter::update(const struct sitl_input &input)
         float Lv = -0.006;
         float Xu = -0.125;
         float Yv = -0.375;
-        float Zw = -0.375;
+        float Zw = -2.25;
 
         // thrust calculated based on 5 deg hover collective for 10lb aircraft at 1500RPM
         float coll = 50.0f * (swash1+swash2+swash3) / 3.0f - 25.0f;
-        thrust = thrust_scale * sq(rpm[0] * 0.104667f) * (0.25* (coll - hover_coll) + hover_coll);
+        thrust = thrust_scale * sq(rpm[0] * 0.104667f) * coll;
 
         // determine RPM
         rpm[0] = update_rpm(rpm[0], rsc, eng_torque, coll, dt);
@@ -381,7 +381,6 @@ float Helicopter::update_rpm(float curr_rpm, float throttle, float &engine_torqu
     static float rotor_runup_output;
     static uint8_t motor_status;
     float accel_scale;
-    float input_torque;
     float auto_ss_torque;
     float descent_torque;
     float rotor_torque;
@@ -390,15 +389,14 @@ float Helicopter::update_rpm(float curr_rpm, float throttle, float &engine_torqu
 
     //use this to make rpm model more realistic
     accel_scale = 100.0f;
-    input_torque = 0.0f;
 
     // calculate aerodynamic rotor drag torque
     rotor_torque = (sq(curr_rpm * 0.104667f) * (torque_mpog + torque_scale * powf(fabsf(collective),1.5f))) / izz;
 
     // Calculate autorotation effect on rotor
-    auto_ss_torque = sq(nominal_rpm * 0.104667f) * torque_mpog / izz;
+    auto_ss_torque = sq(nominal_rpm * 0.104667f) * (torque_mpog + torque_scale * powf(fabsf(-1.0f),1.5f)) / izz;
     if (is_positive(velocity_air_bf.z)) {
-        descent_torque = (velocity_air_bf.z - 7.0) * auto_ss_torque / 7.0f + auto_ss_torque;
+        descent_torque = (velocity_air_bf.z - 5.3) * auto_ss_torque / 5.3f + auto_ss_torque;
     } else {
         descent_torque = 0.0f;
     }
@@ -415,13 +413,13 @@ float Helicopter::update_rpm(float curr_rpm, float throttle, float &engine_torqu
         engine_torque = 1.20f * throttle * engine_torque_max;
 
         // model clutch on gas heli 
+        float input_torque;
         if (throttle >= 0.15f && rpm_engine > curr_rpm) {
             input_torque = engine_torque;
         } else {
             input_torque = 0.0f;
         }
 
-        rpm_dot = 0.0f;
         // help spool down quickly go to zero
         if (throttle <= 0.15f && curr_rpm < 300) {
             rpm_dot = - 40.0f;
@@ -473,6 +471,7 @@ float Helicopter::update_rpm(float curr_rpm, float throttle, float &engine_torqu
         engine_torque = 0.333f * rotor_runup_output * engine_torque_max;
 
         // manage input torque so descent torque combined with engine torque doesn't allow rotor to overspeed
+        float input_torque;
         if (rotor_runup_output >= 1.0f && curr_rpm > nominal_rpm - 100.0f) {
             // want the rpm to seek the nominal rpm so set the input torque to only be that for nominal RPM
             input_torque = rotor_torque * sq(nominal_rpm / curr_rpm);
@@ -482,7 +481,6 @@ float Helicopter::update_rpm(float curr_rpm, float throttle, float &engine_torqu
             input_torque = engine_torque + descent_torque;
         }
 
-        rpm_dot = 0.0f;
         // Help spool down quickly got to zero 
         if (rotor_runup_output <= 0.0f && curr_rpm < 300) {
             rpm_dot = - 40.0f;

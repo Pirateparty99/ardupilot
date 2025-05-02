@@ -202,7 +202,7 @@ bool AP_OSD_MAX7456::check_font_char(uint8_t chr, const uint8_t* font_data)
         buffer_add_cmd(MAX7456ADD_CMDO, 0xFF);
     }
     _dev->get_semaphore()->take_blocking();
-    _dev->transfer(buffer, buffer_offset, buffer, buffer_offset);
+    _dev->transfer_fullduplex(buffer, buffer_offset);
     _dev->get_semaphore()->give();
 
     //skip response from MAX7456ADD_VM0/MAX7456ADD_CMAH...
@@ -252,7 +252,7 @@ AP_OSD_Backend *AP_OSD_MAX7456::probe(AP_OSD &osd, AP_HAL::OwnPtr<AP_HAL::Device
         return nullptr;
     }
 
-    AP_OSD_MAX7456 *backend = new AP_OSD_MAX7456(osd, std::move(dev));
+    AP_OSD_MAX7456 *backend = NEW_NOTHROW AP_OSD_MAX7456(osd, std::move(dev));
     if (!backend) {
         return nullptr;
     }

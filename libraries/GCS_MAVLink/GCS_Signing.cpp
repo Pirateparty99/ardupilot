@@ -15,6 +15,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "GCS_config.h"
+
+#if HAL_GCS_ENABLED
+
 #include "GCS.h"
 
 extern const AP_HAL::HAL& hal;
@@ -76,7 +80,7 @@ void GCS_MAVLINK::handle_setup_signing(const mavlink_message_t &msg) const
     mavlink_setup_signing_t packet;
     mavlink_msg_setup_signing_decode(&msg, &packet);
 
-    struct SigningKey key;
+    struct SigningKey key {};
     key.magic = SIGNING_KEY_MAGIC;
     key.timestamp = packet.initial_timestamp;
     memcpy(key.secret_key, packet.secret_key, 32);
@@ -259,3 +263,4 @@ uint8_t GCS_MAVLINK::packet_overhead_chan(mavlink_channel_t chan)
     return MAVLINK_NUM_NON_PAYLOAD_BYTES + reserved_space;
 }
 
+#endif  // HAL_GCS_ENABLED

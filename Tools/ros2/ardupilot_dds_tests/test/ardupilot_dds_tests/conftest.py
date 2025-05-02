@@ -22,9 +22,6 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch import LaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription
-from launch.substitutions import PathJoinSubstitution
-
-from launch_ros.substitutions import FindPackageShare
 
 from pathlib import Path
 
@@ -74,13 +71,6 @@ def micro_ros_agent_serial(device_dir):
         LaunchDescriptionSource(mra_ld),
         launch_arguments={
             "transport": "serial",
-            "refs": PathJoinSubstitution(
-                [
-                    FindPackageShare("ardupilot_sitl"),
-                    "config",
-                    "dds_xrce_profile.xml",
-                ]
-            ),
             "baudrate": "115200",
             "device": str(tty0),
         }.items(),
@@ -97,13 +87,6 @@ def micro_ros_agent_udp():
         LaunchDescriptionSource(mra_ld),
         launch_arguments={
             "transport": "udp4",
-            "refs": PathJoinSubstitution(
-                [
-                    FindPackageShare("ardupilot_sitl"),
-                    "config",
-                    "dds_xrce_profile.xml",
-                ]
-            ),
         }.items(),
     )
     yield ld, mra_actions
@@ -145,7 +128,7 @@ def sitl_copter_dds_serial(device_dir, virtual_ports, micro_ros_agent_serial, ma
             "speedup": "10",
             "slave": "0",
             "instance": "0",
-            "uartC": f"uart:{str(tty1)}",
+            "serial1": f"uart:{str(tty1)}",
             "defaults": str(
                 Path(
                     get_package_share_directory("ardupilot_sitl"),
@@ -228,6 +211,121 @@ def sitl_copter_dds_udp(micro_ros_agent_udp, mavproxy):
         ]
     )
     actions = {}
+    actions.update(mra_actions)
+    actions.update(mp_actions)
+    actions.update(sitl_actions)
+    yield ld, actions
+
+
+@pytest.fixture
+def sitl_plane_dds_serial(device_dir, virtual_ports, micro_ros_agent_serial, mavproxy):
+    """Fixture to bring up ArduPilot SITL DDS."""
+    tty1 = Path(device_dir, "dev", "tty1").resolve()
+
+    vp_ld, vp_actions = virtual_ports
+    mra_ld, mra_actions = micro_ros_agent_serial
+    mp_ld, mp_actions = mavproxy
+    sitl_ld, sitl_actions = SITLLaunch.generate_launch_description_with_actions()
+
+    sitl_ld_args = IncludeLaunchDescription(
+        LaunchDescriptionSource(sitl_ld),
+        launch_arguments={
+            "command": "arduplane",
+            "synthetic_clock": "True",
+            # "wipe": "True",
+            "wipe": "False",
+            "model": "plane",
+            "speedup": "10",
+            "slave": "0",
+            "instance": "0",
+            "serial1": f"uart:{str(tty1)}",
+            "defaults": str(
+                Path(
+                    get_package_share_directory("ardupilot_sitl"),
+                    "config",
+                    "models",
+                    "plane.parm",
+                )
+            )
+            + ","
+            + str(
+                Path(
+                    get_package_share_directory("ardupilot_sitl"),
+                    "config",
+                    "default_params",
+                    "dds_serial.parm",
+                )
+            ),
+        }.items(),
+    )
+
+    ld = LaunchDescription(
+        [
+            vp_ld,
+            mra_ld,
+            mp_ld,
+            sitl_ld_args,
+        ]
+    )
+    actions = {}
+    actions.update(vp_actions)
+    actions.update(mra_actions)
+    actions.update(mp_actions)
+    actions.update(sitl_actions)
+    yield ld, actions
+
+
+@pytest.fixture
+def sitl_plane_dds_udp(device_dir, virtual_ports, micro_ros_agent_udp, mavproxy):
+    """Fixture to bring up ArduPilot SITL DDS."""
+    tty1 = Path(device_dir, "dev", "tty1").resolve()
+
+    vp_ld, vp_actions = virtual_ports
+    mra_ld, mra_actions = micro_ros_agent_udp
+    mp_ld, mp_actions = mavproxy
+    sitl_ld, sitl_actions = SITLLaunch.generate_launch_description_with_actions()
+
+    sitl_ld_args = IncludeLaunchDescription(
+        LaunchDescriptionSource(sitl_ld),
+        launch_arguments={
+            "command": "arduplane",
+            "synthetic_clock": "True",
+            # "wipe": "True",
+            "wipe": "False",
+            "model": "plane",
+            "speedup": "10",
+            "slave": "0",
+            "instance": "0",
+            "defaults": str(
+                Path(
+                    get_package_share_directory("ardupilot_sitl"),
+                    "config",
+                    "models",
+                    "plane.parm",
+                )
+            )
+            + ","
+            + str(
+                Path(
+                    get_package_share_directory("ardupilot_sitl"),
+                    "config",
+                    "default_params",
+                    "dds_udp.parm",
+                )
+            ),
+        }.items(),
+    )
+
+    ld = LaunchDescription(
+        [
+            vp_ld,
+            mra_ld,
+            mp_ld,
+            sitl_ld_args,
+        ]
+    )
+    actions = {}
+    actions.update(vp_actions)
     actions.update(mra_actions)
     actions.update(mp_actions)
     actions.update(sitl_actions)

@@ -134,7 +134,7 @@ void AP_FETtecOneWire::init()
     }
 
     // we have a uart and the desired ESC combination id valid, allocate some memory:
-    _escs = new ESC[_esc_count];
+    _escs = NEW_NOTHROW ESC[_esc_count];
     if (_escs == nullptr) {
         return;
     }
@@ -154,7 +154,7 @@ void AP_FETtecOneWire::init()
     }
     _invalid_mask = false;  // mask is good
 
-    gcs().send_text(MAV_SEVERITY_INFO, "FETtec: allocated %u motors", _esc_count);
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "FETtec: allocated %u motors", _esc_count);
 
     // We expect to be able to send a fast-throttle command in each loop.
     // 8  bits - OneWire Header

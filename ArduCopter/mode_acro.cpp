@@ -2,7 +2,7 @@
 
 #include "mode.h"
 
-#if MODE_ACRO_ENABLED == ENABLED
+#if MODE_ACRO_ENABLED
 
 /*
  * Init and run calls for acro flight mode
@@ -60,9 +60,9 @@ void ModeAcro::run()
 
     // run attitude controller
     if (g2.acro_options.get() & uint8_t(AcroOptions::RATE_LOOP_ONLY)) {
-        attitude_control->input_rate_bf_roll_pitch_yaw_2(target_roll, target_pitch, target_yaw);
+        attitude_control->input_rate_bf_roll_pitch_yaw_2_cds(target_roll, target_pitch, target_yaw);
     } else {
-        attitude_control->input_rate_bf_roll_pitch_yaw(target_roll, target_pitch, target_yaw);
+        attitude_control->input_rate_bf_roll_pitch_yaw_cds(target_roll, target_pitch, target_yaw);
     }
 
     // output pilot's throttle without angle boost
@@ -162,7 +162,7 @@ void ModeAcro::get_pilot_desired_angle_rates(float roll_in, float pitch_in, floa
         }
 
         // convert earth-frame level rates to body-frame level rates
-        attitude_control->euler_rate_to_ang_vel(attitude_control->get_att_target_euler_cd() * radians(0.01f), rate_ef_level_cd, rate_bf_level_cd);
+        attitude_control->euler_rate_to_ang_vel(attitude_control->get_attitude_target_quat(), rate_ef_level_cd, rate_bf_level_cd);
 
         // combine earth frame rate corrections with rate requests
         if (g.acro_trainer == (uint8_t)Trainer::LIMITED) {

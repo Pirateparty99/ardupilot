@@ -6,7 +6,7 @@ MCU STM32L431 STM32L431xx
 # crystal frequency
 OSCILLATOR_HZ 8000000
 
-# board ID for firmware load
+# board ID. See Tools/AP_Bootloader/board_types.txt
 APJ_BOARD_ID 1062
 
 # setup build for a peripheral firmware
@@ -48,8 +48,6 @@ define DMA_RESERVE_SIZE 0
 
 MAIN_STACK 0x800
 PROCESS_STACK 0x800
-
-define HAL_DISABLE_LOOP_DELAY
 
 # Add CS pins to ensure they are high in bootloader
 PA4 MAG_CS CS

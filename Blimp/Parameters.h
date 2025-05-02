@@ -3,7 +3,7 @@
 #define AP_PARAM_VEHICLE_NAME blimp
 
 #include <AP_Common/AP_Common.h>
-#include "RC_Channel.h"
+#include "RC_Channel_Blimp.h"
 #include <SRV_Channel/SRV_Channel.h>
 
 // Global parameter class.
@@ -87,7 +87,7 @@ public:
         k_param_log_bitmask,
         k_param_throttle_filt,
         k_param_throttle_behavior,
-        k_param_pilot_takeoff_alt,
+        k_param_pilot_takeoff_alt, //unused
 
         // AP_ADSB Library
         k_param_adsb,
@@ -110,6 +110,7 @@ public:
         k_param_max_pos_yaw,
         k_param_simple_mode,
         k_param_dis_mask,
+        k_param_pid_dz,
 
         //
         // 90: misc2
@@ -127,18 +128,18 @@ public:
 
         // 110: Telemetry control
         //
-        k_param_gcs0 = 110,
-        k_param_gcs1,
-        k_param_sysid_this_mav,
-        k_param_sysid_my_gcs,
-        k_param_telem_delay,
-        k_param_gcs2,
-        k_param_serial_manager,
-        k_param_gcs3,
-        k_param_gcs_pid_mask,    // 126
-        k_param_gcs4,
-        k_param_gcs5,
-        k_param_gcs6,
+        k_param_gcs0_unused = 110,        // unused in ArduPilot-4.7
+        k_param_gcs1_unused,              // unused in ArduPilot-4.7
+        k_param_sysid_this_mav_old,
+        k_param_sysid_my_gcs_old,
+        k_param_telem_delay_old,          // used for conversion in ArduPilot-4.7
+        k_param_gcs2_unused,              // unused in ArduPilot-4.7
+        k_param_serial_manager_old,
+        k_param_gcs3_unused,              // unused in ArduPilot-4.7
+        k_param_gcs_pid_mask,
+        k_param_gcs4_unused,              // unused in ArduPilot-4.7
+        k_param_gcs5_unused,              // unused in ArduPilot-4.7
+        k_param_gcs6_unused,              // unused in ArduPilot-4.7
 
         //
         // 135 : reserved for Solo until features merged with master
@@ -199,21 +200,15 @@ public:
         k_param_logger = 253, // 253 - Logging Group
 
         k_param_vehicle = 257, // vehicle common block of parameters
+        k_param__gcs = 258,
 
         // the k_param_* space is 9-bits in size
     };
 
     AP_Int16        format_version;
 
-    // Telemetry control
-    //
-    AP_Int16        sysid_this_mav;
-    AP_Int16        sysid_my_gcs;
-    AP_Int8         telem_delay;
-
     AP_Float        throttle_filt;
     AP_Int16        throttle_behavior;
-    AP_Float        pilot_takeoff_alt;
 
     AP_Int8         failsafe_gcs;               // ground station failsafe behavior
     AP_Int16        gps_hdop_good;              // GPS Hdop value at or below this value represent a good position
@@ -254,6 +249,7 @@ public:
 
     AP_Int8         simple_mode;
     AP_Int16        dis_mask;
+    AP_Float        pid_dz;
 
     AP_Int8         rtl_alt_type;
 
@@ -280,14 +276,6 @@ public:
     // altitude at which nav control can start in takeoff
     AP_Float wp_navalt_min;
 
-#if STATS_ENABLED == ENABLED
-    // vehicle statistics
-    AP_Stats stats;
-#endif
-
-    // whether to enforce acceptance of packets only from sysid_my_gcs
-    AP_Int8 sysid_enforce;
-
     // developer options
     AP_Int32 dev_options;
 
@@ -308,11 +296,6 @@ public:
 
     // Land alt final stage
     AP_Int16 land_alt_low;
-
-
-#if AP_SCRIPTING_ENABLED
-    AP_Scripting scripting;
-#endif // AP_SCRIPTING_ENABLED
 
     // vibration failsafe enable/disable
     AP_Int8 fs_vibe_enabled;

@@ -21,9 +21,11 @@
  *
  */
 
-#include "AP_AHRS_Backend.h"
+#include "AP_AHRS_config.h"
 
-#if HAL_EXTERNAL_AHRS_ENABLED
+#if AP_AHRS_EXTERNAL_ENABLED
+
+#include "AP_AHRS_Backend.h"
 
 class AP_AHRS_External : public AP_AHRS_Backend {
 public:
@@ -42,9 +44,6 @@ public:
     void            update() override;
     void            get_results(Estimates &results) override;
     void            reset() override {}
-
-    // dead-reckoning support
-    virtual bool get_location(struct Location &loc) const override;
 
     // return a wind estimation vector, in m/s
     bool wind_estimate(Vector3f &ret) const override {

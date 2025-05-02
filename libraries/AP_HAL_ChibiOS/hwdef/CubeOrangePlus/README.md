@@ -537,9 +537,7 @@ Spektrum satellite receivers.
 
 ## PWM Output
 
-The CubeOrangePlus supports up to 14 PWM outputs. First first 8 outputs (labelled
-"MAIN") are controlled by a dedicated STM32F100 IO controller. These 8
-outputs support all PWM output formats, but not DShot.
+The CubeOrangePlus supports up to 14 PWM outputs, with the first 8 ("MAIN") managed by an STM32F100 IO controller. These support all PWM formats, and DShot can be enabled by setting BRD_IO_DSHOT to 1, which loads the DShot firmware on the IO co-processor.
 
 The remaining 6 outputs (labelled AUX1 to AUX6) are the "auxiliary"
 outputs. These are directly attached to the STM32H743 and support all
@@ -590,6 +588,8 @@ The numbering of the GPIOs for PIN variables in ArduPilot is:
  - PWM4 53
  - PWM5 54
  - PWM6 55
+ - EXTERN_GPIO1 1 (requires custom carrier board, and alternate pin configuration 2)
+ - EXTERN_GPIO2 2 (requires custom carrier board, and alternate pin configuration 2)
 
 ## Analog inputs
 
@@ -601,6 +601,8 @@ The CubeOrangePlus has 7 analog inputs
  - ADC Pin4 -> Battery2 Current Sensor
  - ADC Pin18 -> Vdd 5V supply sense
  - ADC Pin8 -> ADC port input
+ - ADC Pin9 -> EXTERN_GPIO1 (requires custom carrier board)
+ - ADC Pin5 -> EXTERN_GPIO2 (requires custom carrier board)
  - ADC Pin103 -> RSSI voltage monitoring
 
 ## IMU Heater

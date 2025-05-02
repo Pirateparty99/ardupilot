@@ -14,10 +14,12 @@
  */
 /*
     Dump logged AIS data to the serial port
-    ./Tools/autotest/sim_vehicle.py -v Rover -A --uartF=sim:AIS --custom-location 51.58689798356386,-3.9044570193067965,0,0
+    ./Tools/autotest/sim_vehicle.py -v Rover -A --serial5=sim:AIS --custom-location 51.58689798356386,-3.9044570193067965,0,0 --map
 
     param set SERIAL5_PROTOCOL 40
     param set AIS_TYPE 1
+    reboot
+    module load ais
 */
 
 #include "SIM_AIS.h"
@@ -25,6 +27,9 @@
 #if HAL_SIM_AIS_ENABLED
 
 #include <SITL/SITL.h>
+
+#define FORCE_VERSION_H_INCLUDE
+#include "ap_version.h"
 
 extern const AP_HAL::HAL& hal;
 
@@ -34,7 +39,7 @@ using namespace SITL;
 AIS::AIS() : SerialDevice::SerialDevice()
 {
     char* file_path;
-    IGNORE_RETURN(asprintf(&file_path, SKETCHBOOK "/libraries/SITL/SIM_AIS_data.txt"));
+    IGNORE_RETURN(asprintf(&file_path, AP_BUILD_ROOT "/libraries/SITL/SIM_AIS_data.txt"));
 
     file = fopen(file_path,"r");
 

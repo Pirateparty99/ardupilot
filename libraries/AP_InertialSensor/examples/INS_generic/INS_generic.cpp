@@ -22,7 +22,7 @@ static void run_test();
 // board specific config
 static AP_BoardConfig BoardConfig;
 static AP_Int32 log_bitmask;
-static AP_Logger logger{log_bitmask};
+static AP_Logger logger;
 
 void setup(void);
 void loop(void);
@@ -79,7 +79,7 @@ void loop(void)
         }
 
         if (user_input == 'r') {
-            hal.scheduler->reboot(false);
+            hal.scheduler->reboot();
         }
     }
 }
@@ -185,9 +185,6 @@ static void run_test()
     }
 }
 
-const struct AP_Param::GroupInfo        GCS_MAVLINK_Parameters::var_info[] = {
-    AP_GROUPEND
-};
 GCS_Dummy _gcs;
 
 AP_HAL_MAIN();

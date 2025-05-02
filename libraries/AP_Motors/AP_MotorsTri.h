@@ -42,14 +42,20 @@ public:
     // mask. This is used to control tiltrotor motors in forward
     // flight. Thrust is in the range 0 to 1
     // rudder_dt applys diffential thrust for yaw in the range 0 to 1
-    void                output_motor_mask(float thrust, uint16_t mask, float rudder_dt) override;
+    void                output_motor_mask(float thrust, uint32_t mask, float rudder_dt) override;
 
     // return the roll factor of any motor, this is used for tilt rotors and tail sitters
     // using copter motors for forward flight
     float               get_roll_factor(uint8_t i) override;
 
+    // return the pitch factor of any motor, this is used for AP_Motors_test
+    float               get_pitch_factor_json(uint8_t i);
+
     // Run arming checks
     bool arming_checks(size_t buflen, char *buffer) const override;
+
+    // Get the testing order for the motors, this is used for AP_Motors_test
+    uint8_t get_motor_test_order(uint8_t i);
 
 protected:
     // output - sends commands to the motors
@@ -59,6 +65,7 @@ protected:
     void                thrust_compensation(void) override;
 
     const char* _get_frame_string() const override { return "TRI"; }
+    const char*  get_type_string() const override { return _pitch_reversed ? "pitch-reversed" : ""; }
 
     // output_test_seq - spin a motor at the pwm value specified
     //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame

@@ -5,8 +5,9 @@
 #include <AP_Param/AP_Param.h>
 #include <AP_RTC/AP_RTC.h>
 #include <AC_PID/AC_PI.h>
+#include <AP_Radio/AP_Radio_config.h>
 
-#if HAL_RCINPUT_WITH_AP_RADIO
+#if AP_RADIO_ENABLED
 #include <AP_Radio/AP_Radio.h>
 #endif
 
@@ -67,6 +68,8 @@ public:
         PX4_BOARD_FMUV6    = 39,
         FMUV6_BOARD_HOLYBRO_6X = 40,
         FMUV6_BOARD_CUAV_6X = 41,
+        FMUV6_BOARD_HOLYBRO_6X_REV6 = 42,
+        FMUV6_BOARD_HOLYBRO_6X_45686 = 43,
         PX4_BOARD_OLDDRIVERS = 100,
     };
 
@@ -89,6 +92,14 @@ public:
         return _singleton?uint8_t(_singleton->state.io_enable.get()):0;
 #else
         return 0;
+#endif
+    }
+
+    static bool io_dshot(void) {
+#if HAL_WITH_IO_MCU_DSHOT
+        return io_enabled() && _singleton?_singleton->state.io_dshot.get():false;
+#else
+        return false;
 #endif
     }
 
@@ -146,8 +157,19 @@ public:
         UNLOCK_FLASH = (1<<4),
         WRITE_PROTECT_FLASH = (1<<5),
         WRITE_PROTECT_BOOTLOADER = (1<<6),
-        SKIP_BOARD_VALIDATION = (1<<7)
+        SKIP_BOARD_VALIDATION = (1<<7),
+        DISABLE_ARMING_GPIO = (1<<8),
+        IO_SAFETY_PINS_AS_PROFILED = (1<<9),
     };
+
+    //return true if arming gpio output is disabled
+    static bool arming_gpio_disabled(void) {
+        return _singleton?(_singleton->_options & DISABLE_ARMING_GPIO)!=0:1;
+    }
+    
+#ifndef HAL_ARM_GPIO_POL_INVERT
+#define HAL_ARM_GPIO_POL_INVERT 0
+#endif
 
     // return true if ftp is disabled
     static bool ftp_disabled(void) {
@@ -179,6 +201,12 @@ public:
         return _singleton?(_singleton->_options & ALLOW_SET_INTERNAL_PARM)!=0:false;
     }
     
+#if HAL_WITH_IO_MCU
+    static bool use_safety_as_led(void) {
+        return _singleton?(_singleton->_options & IO_SAFETY_PINS_AS_PROFILED)!=0:false;
+    }
+#endif
+
     // handle press of safety button. Return true if safety state
     // should be toggled
     bool safety_button_handle_pressed(uint8_t press_count);
@@ -201,6 +229,11 @@ public:
     static uint16_t get_sdcard_mission_kb(void) {
         return _singleton? _singleton->sdcard_storage.mission_kb.get() : 0;
     }
+
+    // return number of kb of fence storage to use on microSD
+    static uint16_t get_sdcard_fence_kb(void) {
+        return _singleton? _singleton->sdcard_storage.fence_kb.get() : 0;
+    }
 #endif
 
 private:
@@ -213,16 +246,18 @@ private:
         AP_Int16 safety_option;
         AP_Int32 ignore_safety_channels;
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
-        AP_Int8 ser_rtscts[6];
+        AP_Int8 ser_rtscts[9];
         AP_Int8 sbus_out_rate;
 #endif
         AP_Int8 board_type;
         AP_Int8 io_enable;
+        AP_Int8 io_dshot;
     } state;
 
 #if AP_SDCARD_STORAGE_ENABLED
     struct {
         AP_Int16 mission_kb;
+        AP_Int16 fence_kb;
     } sdcard_storage;
 #endif
 
@@ -265,13 +300,15 @@ private:
     } heater;
 #endif
 
-#if HAL_RCINPUT_WITH_AP_RADIO
+#if AP_RADIO_ENABLED
     // direct attached radio
     AP_Radio _radio;
 #endif
-    
+
+#if AP_RTC_ENABLED
     // real-time-clock; private because access is via the singleton
     AP_RTC rtc;
+#endif
 
 #if HAL_HAVE_BOARD_VOLTAGE
     AP_Float _vbus_min;
